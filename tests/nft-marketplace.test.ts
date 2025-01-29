@@ -1,21 +1,56 @@
-
 import { describe, expect, it } from "vitest";
+import { Cl } from "@stacks/transactions";
 
 const accounts = simnet.getAccounts();
-const address1 = accounts.get("wallet_1")!;
+const wallet1 = accounts.get("wallet_1")!;
+const wallet2 = accounts.get("wallet_2")!;
 
-/*
-  The test below is an example. To learn more, read the testing documentation here:
-  https://docs.hiro.so/stacks/clarinet-js-sdk
-*/
-
-describe("example tests", () => {
-  it("ensures simnet is well initalised", () => {
-    expect(simnet.blockHeight).toBeDefined();
+describe("nft-marketplace contract", () => {
+  it("successfully mints a new carbon credit", () => {
+    const mintCall = simnet.callPublicFn(
+      "nft-marketplace",
+      "mint-credit",
+      [Cl.uint(100), Cl.uint(20240129)],
+      wallet1
+    );
+    expect(mintCall.result).toBeOk(Cl.uint(0));
   });
 
-  // it("shows an example", () => {
-  //   const { result } = simnet.callReadOnlyFn("counter", "get-counter", [], address1);
-  //   expect(result).toBeUint(0);
-  // });
+  it("allows transfer of carbon credits", () => {
+    // First mint a credit
+    const mintCall = simnet.callPublicFn(
+      "nft-marketplace",
+      "mint-credit",
+      [Cl.uint(100), Cl.uint(20240129)],
+      wallet1
+    );
+    
+    // Then transfer it
+    const transferCall = simnet.callPublicFn(
+      "nft-marketplace",
+      "transfer-credit",
+      [Cl.uint(0), Cl.principal(wallet2)],
+      wallet1
+    );
+    expect(transferCall.result).toBeOk(Cl.bool(true));
+  });
+
+  it("allows retirement of carbon credits", () => {
+    // First mint a credit
+    const mintCall = simnet.callPublicFn(
+      "nft-marketplace",
+      "mint-credit",
+      [Cl.uint(100), Cl.uint(20240129)],
+      wallet1
+    );
+    
+    // Then retire it
+    const retireCall = simnet.callPublicFn(
+      "nft-marketplace",
+      "retire-credit",
+      [Cl.uint(0)],
+      wallet1
+    );
+    expect(retireCall.result).toBeOk(Cl.bool(true));
+  });
 });

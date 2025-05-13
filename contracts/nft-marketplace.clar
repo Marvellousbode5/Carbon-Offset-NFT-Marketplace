@@ -568,3 +568,105 @@
 (define-read-only (get-credit-score (credit-id uint))
     (map-get? credit-scores credit-id)
 )
+
+
+(define-public (retire-and-fractionalize (credit-id uint) (num-fractions uint) (price-per-fraction uint) (beneficiary principal))
+    (let 
+        (
+            (credit-data (unwrap! (map-get? credit-metadata credit-id) ERR-INVALID-CREDIT))
+        )
+        ;; Verify ownership
+        (asserts! (is-eq tx-sender (get owner credit-data)) ERR-NOT-AUTHORIZED)
+        
+        ;; Check if already retired
+        (asserts! (not (get retired credit-data)) ERR-ALREADY-RETIRED)
+
+        ;; Check if not already fractionalized
+        (asserts! (is-none (map-get? fractionalized-credits credit-id)) (err u113))
+        
+        ;; Retire the credit
+        (map-set credit-metadata credit-id 
+            (merge credit-data { retired: true, owner: (as-contract tx-sender) })
+        )
+
+        ;; Transfer NFT to contract
+        (try! (nft-transfer? carbon-credit credit-id tx-sender (as-contract tx-sender)))
+        
+        ;; Mint fractions
+        (try! (ft-mint? credit-fraction num-fractions beneficiary))
+        
+        ;; Record fractionalization
+        (map-set fractionalized-credits credit-id {
+            total-fractions: num-fractions,
+            remaining-fractions: num-fractions,
+            price-per-fraction: price-per-fraction,
+            is-fractionalized: true
+        })
+        
+        ;; Record action
+        (try! (record-action credit-id "retired-and-fraction"))
+        
+        (ok true)
+    )
+)
+
+
+(define-map credit-escrow uint {buyer: principal, price: uint})
+
+(define-public (purchase-credit-escrow (credit-id uint))
+    (let 
+        (
+            (listing (unwrap! (map-get? market-listings credit-id) (err u105)))
+            (credit-data (unwrap! (map-get? credit-metadata credit-id) ERR-INVALID-CREDIT))
+            (seller (get owner credit-data))
+            (price (get price listing))
+        )
+        ;; Check if credit is listed
+        (asserts! (get listed listing) (err u106))
+        
+        ;; Check if credit is not retired
+        (asserts! (not (get retired credit-data)) ERR-ALREADY-RETIRED)
+        
+        ;; Transfer STX to escrow
+        (try! (stx-transfer? price tx-sender (as-contract tx-sender)))
+        
+        ;; Record escrow details
+        (map-set credit-escrow credit-id {buyer: tx-sender, price: price})
+        
+        (ok true)
+    )
+)
+
+(define-public (release-escrow (credit-id uint))
+    (let 
+        (
+            (escrow-data (unwrap! (map-get? credit-escrow credit-id) (err u117)))
+            (buyer (get buyer escrow-data))
+            (price (get price escrow-data))
+            (credit-data (unwrap! (map-get? credit-metadata credit-id) ERR-INVALID-CREDIT))
+            (seller (get owner credit-data))
+        )
+        ;; Verify seller is releasing
+        (asserts! (is-eq tx-sender seller) ERR-NOT-AUTHORIZED)
+        
+        ;; Transfer NFT to buyer
+        (try! (nft-transfer? carbon-credit credit-id seller buyer))
+        
+        ;; Transfer STX from escrow to seller
+        (try! (as-contract (stx-transfer? price (as-contract tx-sender) seller)))
+        
+        ;; Update metadata
+        (map-set credit-metadata credit-id 
+            (merge credit-data { owner: buyer })
+        )
+        
+        ;; Remove listing and escrow
+        (map-delete market-listings credit-id)
+        (map-delete credit-escrow credit-id)
+        
+        ;; Record transaction in history
+        (try! (record-action credit-id "purchased-escrow"))
+        
+        (ok true)
+    )
+)

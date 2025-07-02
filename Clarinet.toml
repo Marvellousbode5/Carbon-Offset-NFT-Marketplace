@@ -14,6 +14,12 @@ epoch = 3.1
 path = 'contracts/staking-pool.clar'
 clarity_version = 3
 epoch = 3.1
+
+[contracts.impact-oracle]
+path = 'contracts/impact-oracle.clar'
+clarity_version = 3
+epoch = 3.1
+
 [repl.analysis]
 passes = ['check_checker']
 

@@ -50,8 +50,28 @@ plan:
     - id: 0
       transactions:
         - emulated-contract-publish:
+            contract-name: carbon-auction-house
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: "contracts\\carbon-auction-house.clar"
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: carbon-insurance
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: "contracts\\carbon-insurance.clar"
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: impact-oracle
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: "contracts\\impact-oracle.clar"
+            clarity-version: 3
+        - emulated-contract-publish:
             contract-name: nft-marketplace
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/nft-marketplace.clar
+            path: "contracts\\nft-marketplace.clar"
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: staking-pool
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: "contracts\\staking-pool.clar"
             clarity-version: 3
       epoch: "3.1"
